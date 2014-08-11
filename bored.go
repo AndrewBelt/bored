@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"unsafe"
+	"container/list"
 )
 
 // #include <stdlib.h>
@@ -27,41 +28,41 @@ var engine struct {
 var gfx struct {
 	renderer *C.SDL_Renderer
 	tileTexture *C.SDL_Texture
-	offsetX, offsetY int
+	offset Vector
 	zoom int
 }
 
 var grid struct {
-	w, h int
+	size Vector
 	tiles []Tile
-	hoverX, hoverY int
-	playerX, playerY int
-	playerDestX, playerDestY int
+	hover Vector
+	player Vector
+	playerDest Vector
 }
 
+// Types
+
 type Tile uint8
+type Vector struct {x, y int}
 
 
 // Grid
 
 func GridInit() {
-	grid.w = 64
-	grid.h = 64
-	grid.tiles = make([]Tile, grid.w * grid.h)
-	for y := 0; y < grid.h; y++ {
-		for x := 0; x < grid.w; x++ {
+	grid.size = Vector {64, 46}
+	grid.tiles = make([]Tile, grid.size.x * grid.size.y)
+	for y := 0; y < grid.size.y; y++ {
+		for x := 0; x < grid.size.x; x++ {
 			*GridGetTile(x, y) = Tile(rand.Intn(2))
 		}
 	}
-	grid.hoverX = -1
-	grid.hoverY = -1
-	grid.playerX = 0
-	grid.playerY = 0
+	grid.hover = Vector {-1, -1}
+	grid.player = Vector {0, 0}
 }
 
 func GridGetTile(x, y int) *Tile {
-	if 0 <= x && x < grid.w && 0 <= y && y < grid.h {
-		return &grid.tiles[x + grid.w * y]
+	if 0 <= x && x < grid.size.x && 0 <= y && y < grid.size.y {
+		return &grid.tiles[x + grid.size.x * y]
 	} else {
 		return nil
 	}
@@ -92,8 +93,8 @@ func GfxDrawTile(tile Tile, x, y int) {
 		TILE_SIZE, TILE_SIZE,
 	}
 	dst := C.SDL_Rect {
-		C.int(gfx.offsetX + x*TILE_SIZE*gfx.zoom),
-		C.int(gfx.offsetY + y*TILE_SIZE*gfx.zoom),
+		C.int(gfx.offset.x + x*TILE_SIZE*gfx.zoom),
+		C.int(gfx.offset.y + y*TILE_SIZE*gfx.zoom),
 		C.int(TILE_SIZE*gfx.zoom), C.int(TILE_SIZE*gfx.zoom),
 	}
 	C.SDL_RenderCopy(gfx.renderer, gfx.tileTexture, &src, &dst)
@@ -103,10 +104,10 @@ func GfxRender() {
 	C.SDL_RenderClear(gfx.renderer)
 	
 	// Render grid
-	for y := 0; y < grid.h; y++ {
-		for x := 0; x < grid.w; x++ {
+	for y := 0; y < grid.size.y; y++ {
+		for x := 0; x < grid.size.x; x++ {
 			tile := *GridGetTile(x, y)
-			hover := (x == grid.hoverX && y == grid.hoverY)
+			hover := (x == grid.hover.x && y == grid.hover.y)
 			
 			if hover {
 				C.SDL_SetTextureColorMod(gfx.tileTexture, 255, 128, 128)
@@ -119,12 +120,17 @@ func GfxRender() {
 	}
 	
 	// Render player
-	GfxDrawTile(2, grid.playerX, grid.playerY)
+	GfxDrawTile(2, grid.player.x, grid.player.y)
 	
 	C.SDL_RenderPresent(gfx.renderer)
 }
 
 // Physics
+
+func PhysWalk() {
+	q := list.New()
+	v := make(map[Vector]struct{})
+}
 
 func PhysStep() {
 	// TODO
@@ -141,16 +147,7 @@ func PhysStep() {
 	}
 	*/
 	
-	if grid.playerX < grid.playerDestX {
-		grid.playerX++
-	} else if grid.playerX > grid.playerDestX {
-		grid.playerX--
-	}
-	if grid.playerY < grid.playerDestY {
-		grid.playerY++
-	} else if grid.playerY > grid.playerDestY {
-		grid.playerY--
-	}
+	PhysWalk()
 }
 
 // Engine
@@ -166,17 +163,18 @@ func EngineCheckEvent(event *C.SDL_Event) {
 	case 0x400: // SDL_MOUSEMOTION
 		e := (*C.SDL_MouseMotionEvent)(eventPointer)
 		if e.state == (1<<(3-1)) {
-			gfx.offsetX += int(e.xrel)
-			gfx.offsetY += int(e.yrel)
+			gfx.offset.x += int(e.xrel)
+			gfx.offset.y += int(e.yrel)
 		}
-		grid.hoverX = (int(e.x) - gfx.offsetX) / (TILE_SIZE*gfx.zoom)
-		grid.hoverY = (int(e.y) - gfx.offsetY) / (TILE_SIZE*gfx.zoom)
+		grid.hover = Vector {
+			(int(e.x) - gfx.offset.x) / (TILE_SIZE*gfx.zoom),
+			(int(e.y) - gfx.offset.y) / (TILE_SIZE*gfx.zoom),
+		}
 	
 	case 0x401: // SDL_MOUSEBUTTONDOWN
 		e := (*C.SDL_MouseButtonEvent)(eventPointer)
 		if e.button == 1 {
-			grid.playerDestX = grid.hoverX
-			grid.playerDestY = grid.hoverY
+			grid.playerDest = grid.hover
 		}
 	}
 }

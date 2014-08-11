@@ -1,13 +1,25 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "containers.h"
 
 // Constants
 
 const int TILE_SIZE = 16;
+
+// Types
+
+typedef struct {
+	int x;
+	int y;
+} Vector;
+
+typedef uint8_t Tile;
 
 // Global objects
 
@@ -20,41 +32,49 @@ struct {
 struct {
 	SDL_Renderer *renderer;
 	SDL_Texture *tileTexture;
-	int offsetX, offsetY;
+	Vector offset;
 	int zoom;
 } gfx;
 
 struct {
-	int w, h;
-	int *tiles;
-	int hoverX, hoverY;
-	int playerX, playerY;
-	int playerDestX, playerDestY;
+	Vector size;
+	Tile *tiles;
+	Vector hover;
+	Vector player;
+	Vector playerDest;
 } map;
 
 // Functions
 
 // Returns a pointer to the tile, or NULL if it is out of bounds
-int *mapGetTile(int x, int y) {
-	if (0 <= x && x < map.w && 0 <= y && y < map.h) {
-		return &map.tiles[x + map.w*y];
+Tile *mapGetTile(int x, int y) {
+	if (0 <= x && x < map.size.x && 0 <= y && y < map.size.y) {
+		return &map.tiles[x + map.size.x*y];
 	}
 	else {
 		return NULL;
 	}
 }
 
+// Converts a tile pointer to its position on the map
+Vector mapGetPos(Tile *tile) {
+	int index = (tile - map.tiles) / sizeof(Tile);
+	return (Vector){index % map.size.x, index / map.size.y};
+}
+
 void mapInit() {
-	map.w = 64; map.h = 64;
-	map.tiles = malloc(sizeof(int) * map.w*map.h);
+	map.size = (Vector){64, 64};
+	map.tiles = malloc(sizeof(Tile) * map.size.x * map.size.y);
 	
-	for (int y = 0; y < map.h; y++) {
-		for (int x = 0; x < map.w; x++) {
-			*mapGetTile(x, y) = (rand() % 8 ? 0 : 1);
+	for (int y = 0; y < map.size.y; y++) {
+		for (int x = 0; x < map.size.x; x++) {
+			*mapGetTile(x, y) = (rand() % 3 ? 0 : 1);
 		}
 	}
-	map.hoverX = -1; map.hoverY = -1;
-	map.playerX = 0; map.playerY = 0;
+	
+	map.hover = (Vector){-1, -1};
+	map.player = (Vector){0, 0};
+	map.playerDest = (Vector){0, 0};
 }
 
 void mapDestroy() {
@@ -69,7 +89,7 @@ void gfxInit() {
 	gfx.tileTexture = SDL_CreateTextureFromSurface(gfx.renderer, tileSurface);
 	SDL_FreeSurface(tileSurface);
 	
-	gfx.offsetX = 0; gfx.offsetY = 0;
+	gfx.offset = (Vector){0, 0};
 	gfx.zoom = 2;
 }
 
@@ -78,13 +98,13 @@ void gfxDestroy() {
 	SDL_DestroyRenderer(gfx.renderer);
 }
 
-void gfxDrawTile(int tile, int x, int y) {
+void gfxDrawTile(Tile tile, int x, int y) {
 	SDL_Rect src = {
-		tile*TILE_SIZE, 0,
+		(int) tile * TILE_SIZE, 0,
 		TILE_SIZE, TILE_SIZE
 	};
 	SDL_Rect dst = {
-		gfx.offsetX + x*TILE_SIZE*gfx.zoom, gfx.offsetY + y*TILE_SIZE*gfx.zoom,
+		gfx.offset.x + x*TILE_SIZE*gfx.zoom, gfx.offset.y + y*TILE_SIZE*gfx.zoom,
 		TILE_SIZE*gfx.zoom, TILE_SIZE*gfx.zoom
 	};
 	
@@ -95,10 +115,10 @@ void gfxRender() {
 	SDL_RenderClear(gfx.renderer);
 	
 	// Render map
-	for (int y = 0; y < map.h; y++) {
-		for (int x = 0; x < map.w; x++) {
-			int tile = *mapGetTile(x, y);
-			bool hover = (x == map.hoverX && y == map.hoverY);
+	for (int y = 0; y < map.size.y; y++) {
+		for (int x = 0; x < map.size.x; x++) {
+			Tile tile = *mapGetTile(x, y);
+			bool hover = (x == map.hover.x && y == map.hover.y);
 			if (hover) {
 				SDL_SetTextureColorMod(gfx.tileTexture, 255, 128, 128);
 			}
@@ -110,37 +130,83 @@ void gfxRender() {
 	}
 	
 	// Render player
-	gfxDrawTile(2, map.playerX, map.playerY);
+	gfxDrawTile(2, map.player.x, map.player.y);
 	
 	SDL_RenderPresent(gfx.renderer);
 }
 
-void physStep() {
+void physWalk() {
 	// TODO
 	/*
-	The physics timestep currently walks the player toward the player destination,
-	ignoring obstacles.
-	It should run a breadth-first search on the map from the player location to
-	the player destination, and step once in the correct direction on every frame.
+	This algorithm only verifies that a tile can be reached
+	by the player.
+	It needs to actually find the minimum path and then
+	walk the player by one cell.
 	
-	The map obstacles can be detected by
-	if (*mapGetTile(x, y)) {
-		// Collision!
-	}
+	The player can walk in diagonals, but not cut corners. (TODO)
+	For example, the following move from s to e is invalid:
+	|s| |
+	|#|e|
 	*/
 	
-	if (map.playerX < map.playerDestX) {
-		map.playerX++;
+	Tile *startTile = mapGetTile(map.player.x, map.player.y);
+	Tile *endTile = mapGetTile(map.playerDest.x, map.playerDest.y);
+	
+	// Create queue and add the start tile
+	Queue q;
+	memset(&q, 0, sizeof(Queue));
+	queuePush(&q, startTile);
+	
+	// Create set and add the start tile
+	int vSize = sizeof(bool) * map.size.x * map.size.y;
+	bool *v = malloc(vSize);
+	memset(v, 0, vSize);
+	v[map.player.x + map.size.x * map.player.y] = true;
+	
+	// Start accepting the tiles from the queue
+	Tile *tile;
+	while ((tile = queuePop(&q))) {
+		if (tile == endTile) {
+			break;
+		}
+		
+		Vector tilePos = mapGetPos(tile);
+		
+		for (int dy = -1; dy <= 1; dy++) {
+			for (int dx = -1; dx <= 1; dx++) {
+				if (dx == 0 && dy == 0)
+					continue;
+				
+				int x = tilePos.x + dx;
+				int y = tilePos.y + dy;
+				
+				Tile *adjTile = mapGetTile(x, y);
+				if (!adjTile || *adjTile != 0)
+					continue;
+				
+				// `adjTile` is an adjacent node
+				
+				if (!v[x + map.size.x * y]) {
+					v[x + map.size.x * y] = true;
+					queuePush(&q, adjTile);
+				}
+			}
+		}
 	}
-	else if (map.playerX > map.playerDestX) {
-		map.playerX--;
+	
+	if (tile) {
+		printf("Can reach tile\n");
 	}
-	if (map.playerY < map.playerDestY) {
-		map.playerY++;
+	else {
+		printf("Cannot reach tile\n");
 	}
-	else if (map.playerY > map.playerDestY) {
-		map.playerY--;
-	}
+	
+	queueClear(&q);
+	free(v);
+}
+
+void physStep() {
+	physWalk();
 }
 
 void engineCheckEvent(SDL_Event *event) {
@@ -151,17 +217,18 @@ void engineCheckEvent(SDL_Event *event) {
 	
 	case SDL_MOUSEMOTION:
 		if (event->motion.state == SDL_BUTTON_RMASK) {
-			gfx.offsetX += event->motion.xrel;
-			gfx.offsetY += event->motion.yrel;
+			gfx.offset.x += event->motion.xrel;
+			gfx.offset.y += event->motion.yrel;
 		}
-		map.hoverX = (event->motion.x - gfx.offsetX) / (TILE_SIZE*gfx.zoom);
-		map.hoverY = (event->motion.y - gfx.offsetY) / (TILE_SIZE*gfx.zoom);
+		map.hover = (Vector){
+			(event->motion.x - gfx.offset.x) / (TILE_SIZE*gfx.zoom),
+			(event->motion.y - gfx.offset.y) / (TILE_SIZE*gfx.zoom),
+		};
 		break;
 	
 	case SDL_MOUSEBUTTONDOWN:
 		if (event->button.button == SDL_BUTTON_LEFT) {
-			map.playerDestX = map.hoverX;
-			map.playerDestY = map.hoverY;
+			map.playerDest = map.hover;
 		}
 		break;
 	

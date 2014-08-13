@@ -2,13 +2,13 @@
 #include "containers.h"
 
 struct Node {
-	void *element;
+	int val;
 	Node *next;
 };
 
-void queuePush(Queue *queue, void *element) {
+void queuePush(Queue *queue, int val) {
 	Node *node = malloc(sizeof(Node));
-	node->element = element;
+	node->val = val;
 	node->next = NULL;
 	
 	Node *last = queue->last;
@@ -21,7 +21,7 @@ void queuePush(Queue *queue, void *element) {
 	queue->last = node;
 }
 
-void *queuePop(Queue *queue) {
+int queuePop(Queue *queue) {
 	Node *first = queue->first;
 	if (first) {
 		queue->first = first->next;
@@ -29,12 +29,12 @@ void *queuePop(Queue *queue) {
 			queue->last = NULL;
 		}
 		
-		void *element = first->element;
+		int val = first->val;
 		free(first);
-		return element;
+		return val;
 	}
 	else {
-		return NULL;
+		return -1;
 	}
 }
 

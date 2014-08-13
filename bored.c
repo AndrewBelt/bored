@@ -41,10 +41,10 @@ struct {
 	Tile *tiles;
 	Vector hover;
 	Vector player;
-	Vector playerDest;
+	Vector task;
 } map;
 
-// Functions
+// map
 
 // Returns a pointer to the tile, or NULL if it is out of bounds
 Tile *mapGetTile(int x, int y) {
@@ -53,6 +53,16 @@ Tile *mapGetTile(int x, int y) {
 	}
 	else {
 		return NULL;
+	}
+}
+
+bool mapCollides(int x, int y) {
+	Tile *tile = mapGetTile(x, y);
+	if (tile) {
+		return *tile & 0x1;
+	}
+	else {
+		return true;
 	}
 }
 
@@ -74,12 +84,14 @@ void mapInit() {
 	
 	map.hover = (Vector){-1, -1};
 	map.player = (Vector){0, 0};
-	map.playerDest = (Vector){0, 0};
+	map.task = (Vector){0, 0};
 }
 
 void mapDestroy() {
 	free(map.tiles);
 }
+
+// gfx
 
 void gfxInit() {
 	gfx.renderer = SDL_CreateRenderer(engine.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -135,6 +147,8 @@ void gfxRender() {
 	SDL_RenderPresent(gfx.renderer);
 }
 
+// phys
+
 void physWalk() {
 	// TODO
 	/*
@@ -149,65 +163,74 @@ void physWalk() {
 	|#|e|
 	*/
 	
-	Tile *startTile = mapGetTile(map.player.x, map.player.y);
-	Tile *endTile = mapGetTile(map.playerDest.x, map.playerDest.y);
+	int start = map.task.x + map.size.x * map.task.y;
+	int end = map.player.x + map.size.x * map.player.y;
 	
 	// Create queue and add the start tile
 	Queue q;
 	memset(&q, 0, sizeof(Queue));
-	queuePush(&q, startTile);
+	queuePush(&q, start);
 	
 	// Create set and add the start tile
-	int vSize = sizeof(bool) * map.size.x * map.size.y;
-	bool *v = malloc(vSize);
-	memset(v, 0, vSize);
-	v[map.player.x + map.size.x * map.player.y] = true;
+	bool *visited = calloc(map.size.x * map.size.y, sizeof(bool));
+	visited[start] = true;
+	
+	int *previous = calloc(map.size.x * map.size.y, sizeof(Tile*));
+	previous[start] = -1;
 	
 	// Start accepting the tiles from the queue
-	Tile *tile;
-	while ((tile = queuePop(&q))) {
-		if (tile == endTile) {
+	int id;
+	while ((id = queuePop(&q)) >= 0) {
+		if (id == end) {
 			break;
 		}
 		
-		Vector tilePos = mapGetPos(tile);
+		int tx = id % map.size.x;
+		int ty = id / map.size.y;
 		
 		for (int dy = -1; dy <= 1; dy++) {
 			for (int dx = -1; dx <= 1; dx++) {
 				if (dx == 0 && dy == 0)
 					continue;
 				
-				int x = tilePos.x + dx;
-				int y = tilePos.y + dy;
+				int x = tx + dx;
+				int y = ty + dy;
 				
-				Tile *adjTile = mapGetTile(x, y);
-				if (!adjTile || *adjTile != 0)
+				if (mapCollides(x, y))
 					continue;
 				
 				// `adjTile` is an adjacent node
 				
-				if (!v[x + map.size.x * y]) {
-					v[x + map.size.x * y] = true;
-					queuePush(&q, adjTile);
+				int adjId = x + map.size.x * y;
+				if (!visited[adjId]) {
+					visited[adjId] = true;
+					previous[adjId] = id;
+					queuePush(&q, adjId);
 				}
 			}
 		}
 	}
 	
-	if (tile) {
-		printf("Can reach tile\n");
-	}
-	else {
-		printf("Cannot reach tile\n");
+	if (id >= 0) {
+		id = previous[id];
+		if (id >= 0) {
+			int tx = id % map.size.x;
+			int ty = id / map.size.y;
+			map.player.x = tx;
+			map.player.y = ty;
+		}
 	}
 	
 	queueClear(&q);
-	free(v);
+	free(previous);
+	free(visited);
 }
 
 void physStep() {
 	physWalk();
 }
+
+// engine
 
 void engineCheckEvent(SDL_Event *event) {
 	switch (event->type) {
@@ -228,7 +251,7 @@ void engineCheckEvent(SDL_Event *event) {
 	
 	case SDL_MOUSEBUTTONDOWN:
 		if (event->button.button == SDL_BUTTON_LEFT) {
-			map.playerDest = map.hover;
+			map.task = map.hover;
 		}
 		break;
 	

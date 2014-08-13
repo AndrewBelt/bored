@@ -31,28 +31,24 @@ void priqDestroy(Priq *q) {
 }
 
 void priqPush(Priq *q, int val, int pri) {
-	PriqNode *b;
-	int n, m;
-	
+	// Reallocate heap if needed
 	if (q->n >= q->alloc) {
 		q->alloc *= 2;
-		b = q->buf = realloc(q->buf, sizeof(PriqNode) * q->alloc);
+		q->buf = realloc(q->buf, sizeof(PriqNode) * q->alloc);
 	}
-	else {
-		b = q->buf;
-	}
+	PriqNode *buf = q->buf;
 	
-	n = q->n++;
 	/* append at end, then up heap */
-	while ((m = n / 2) && pri < b[m].pri) {
-		b[n] = b[m];
+	int n = q->n++;
+	int m;
+	while ((m = n / 2) && pri < buf[m].pri) {
+		buf[n] = buf[m];
 		n = m;
 	}
-	b[n].val = val;
-	b[n].pri = pri;
+	buf[n].val = val;
+	buf[n].pri = pri;
 }
-	
-/* remove top item. returns 0 if empty. *pri can be null. */
+
 int priqPop(Priq *q)
 {
 	if (q->n == 1) {

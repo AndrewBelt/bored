@@ -2,7 +2,11 @@ CFLAGS = -std=c99 -O3 -Wall -g
 LDFLAGS = -lSDL2 -lSDL2_image
 CC = gcc
 
-bored: bored.c queue.c
+SRCS = \
+	src/bored.c \
+	src/priq.c
+
+bored: $(SRCS)
 	$(LINK.c) -o $@ $^
 
 run: bored

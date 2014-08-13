@@ -46,6 +46,9 @@ struct {
 
 // map
 
+// For now odd tiles collide
+#define TILE_COLLIDES(tile) ((tile) & 0x1)
+
 // Returns a pointer to the tile, or NULL if it is out of bounds
 Tile *mapGetTile(int x, int y) {
 	if (0 <= x && x < map.size.x && 0 <= y && y < map.size.y) {
@@ -53,16 +56,6 @@ Tile *mapGetTile(int x, int y) {
 	}
 	else {
 		return NULL;
-	}
-}
-
-bool mapCollides(int x, int y) {
-	Tile *tile = mapGetTile(x, y);
-	if (tile) {
-		return *tile & 0x1;
-	}
-	else {
-		return true;
 	}
 }
 
@@ -78,7 +71,7 @@ void mapInit() {
 	
 	for (int y = 0; y < map.size.y; y++) {
 		for (int x = 0; x < map.size.x; x++) {
-			*mapGetTile(x, y) = (rand() % 3 ? 0 : 1);
+			*mapGetTile(x, y) = (rand() % 4 ? 0 : 1);
 		}
 	}
 	
@@ -152,78 +145,112 @@ void gfxRender() {
 void physWalk() {
 	// TODO
 	/*
-	This algorithm only verifies that a tile can be reached
-	by the player.
-	It needs to actually find the minimum path and then
-	walk the player by one cell.
-	
-	The player can walk in diagonals, but not cut corners. (TODO)
+	The player can walk in diagonals, but not cut corners.
 	For example, the following move from s to e is invalid:
 	|s| |
 	|#|e|
 	*/
 	
-	int start = map.task.x + map.size.x * map.task.y;
-	int end = map.player.x + map.size.x * map.player.y;
+	int start = map.player.x + map.size.x * map.player.y;
+	int end = map.task.x + map.size.x * map.task.y;
 	
-	// Create queue and add the start tile
-	Queue q;
-	memset(&q, 0, sizeof(Queue));
-	queuePush(&q, start);
+	// Initialize priority queue for minimum distance lookup
+	Priq q;
+	priqInit(&q, map.size.x);
+	priqPush(&q, start, 1);
 	
-	// Create set and add the start tile
-	bool *visited = calloc(map.size.x * map.size.y, sizeof(bool));
-	visited[start] = true;
+	int *dist = calloc(map.size.x * map.size.y, sizeof(int));
+	// 0 means infinity, so set the starting distance to 1
+	dist[start] = 1;
 	
-	int *previous = calloc(map.size.x * map.size.y, sizeof(Tile*));
-	previous[start] = -1;
+	int *prev = calloc(map.size.x * map.size.y, sizeof(int));
+	// -1 means start path
+	prev[start] = -1;
 	
-	// Start accepting the tiles from the queue
-	int id;
-	while ((id = queuePop(&q)) >= 0) {
-		if (id == end) {
+	bool *checked = calloc(map.size.x * map.size.y, sizeof(bool));
+	
+	int u;
+	while ((u = priqPop(&q)) >= 0) {
+		// Skip if already reached
+		if (checked[u])
+			continue;
+		
+		// We now have the unchecked vertex with the minimum distance.
+		checked[u] = true;
+		
+		if (u == end)
 			break;
-		}
 		
-		int tx = id % map.size.x;
-		int ty = id / map.size.y;
+		int tx = u % map.size.x;
+		int ty = u / map.size.y;
 		
+		// Collect collision info
+		int adj[3][3];
 		for (int dy = -1; dy <= 1; dy++) {
 			for (int dx = -1; dx <= 1; dx++) {
-				if (dx == 0 && dy == 0)
-					continue;
-				
 				int x = tx + dx;
 				int y = ty + dy;
-				
-				if (mapCollides(x, y))
+				Tile *tile = mapGetTile(x, y);
+				if (!tile || TILE_COLLIDES(*tile)) {
+					adj[dx + 1][dy + 1] = -1;
+				}
+				else {
+					adj[dx + 1][dy + 1] = x + map.size.x * y;
+				}
+			}
+		}
+		
+		// Restrict to allowed movements
+		adj[1][1] = -1;
+		if (adj[0][1] < 0) {
+			adj[0][0] = adj[0][2] = -1;
+		}
+		if (adj[2][1] < 0) {
+			adj[2][0] = adj[2][2] = -1;
+		}
+		if (adj[1][0] < 0) {
+			adj[0][0] = adj[2][0] = -1;
+		}
+		if (adj[1][2] < 0) {
+			adj[0][2] = adj[2][2] = -1;
+		}
+		
+		// Loop through allowed movements
+		for (int dy = -1; dy <= 1; dy++) {
+			for (int dx = -1; dx <= 1; dx++) {
+				int v = adj[dx + 1][dy + 1];
+				if (v < 0)
 					continue;
 				
-				// `adjTile` is an adjacent node
-				
-				int adjId = x + map.size.x * y;
-				if (!visited[adjId]) {
-					visited[adjId] = true;
-					previous[adjId] = id;
-					queuePush(&q, adjId);
+				// v is an adjacent vertex to u
+				int alt = dist[u] + 1;
+				if (dist[v] == 0 || alt < dist[v]) {
+					dist[v] = alt;
+					prev[v] = u;
+					priqPush(&q, v, alt);
 				}
 			}
 		}
 	}
 	
-	if (id >= 0) {
-		id = previous[id];
-		if (id >= 0) {
-			int tx = id % map.size.x;
-			int ty = id / map.size.y;
-			map.player.x = tx;
-			map.player.y = ty;
-		}
+	// Rewind the path back to the start
+	int u1 = -1;
+	int u2 = -1;
+	while (u >= 0) {
+		u2 = u1;
+		u1 = u;
+		u = prev[u];
 	}
 	
-	queueClear(&q);
-	free(previous);
-	free(visited);
+	if (u2 >= 0) {
+		map.player.x = u2 % map.size.x;
+		map.player.y = u2 / map.size.y;
+	}
+	
+	free(checked);
+	free(prev);
+	free(dist);
+	priqDestroy(&q);
 }
 
 void physStep() {

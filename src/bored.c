@@ -143,14 +143,6 @@ void gfxRender() {
 // phys
 
 void physWalk() {
-	// TODO
-	/*
-	The player can walk in diagonals, but not cut corners.
-	For example, the following move from s to e is invalid:
-	|s| |
-	|#|e|
-	*/
-	
 	int start = map.player.x + map.size.x * map.player.y;
 	int end = map.task.x + map.size.x * map.task.y;
 	
@@ -242,6 +234,7 @@ void physWalk() {
 		u = prev[u];
 	}
 	
+	// Move player along the first edge in the path
 	if (u2 >= 0) {
 		map.player.x = u2 % map.size.x;
 		map.player.y = u2 / map.size.y;

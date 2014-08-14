@@ -2,9 +2,7 @@ CFLAGS = -std=c99 -O3 -Wall -g
 LDFLAGS = -lSDL2 -lSDL2_image
 CC = gcc
 
-SRCS = \
-	src/bored.c \
-	src/priq.c
+SRCS = $(wildcard src/*.c)
 
 bored: $(SRCS)
 	$(LINK.c) -o $@ $^

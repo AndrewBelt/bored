@@ -9,12 +9,6 @@ under the GNU Free Documentation License
 */
 
 
-struct PriqNode {
-	int val;
-	int pri;
-};
-
-
 /* first element in array not used to simplify indices */
 void priqInit(Priq *q, int size) {
 	if (size < 4) {
@@ -30,7 +24,7 @@ void priqDestroy(Priq *q) {
 	free(q->buf);
 }
 
-void priqPush(Priq *q, int val, int pri) {
+void priqPush(Priq *q, void *val, int pri) {
 	// Reallocate heap if needed
 	if (q->n >= q->alloc) {
 		q->alloc *= 2;
@@ -49,16 +43,15 @@ void priqPush(Priq *q, int val, int pri) {
 	buf[n].pri = pri;
 }
 
-int priqPop(Priq *q)
-{
+void *priqPop(Priq *q) {
 	if (q->n == 1) {
-		// Return -1 if nothing is in the queue
-		return -1;
+		// Return null if nothing is in the queue
+		return NULL;
 	}
 	
 	PriqNode *b = q->buf;
 	
-	int val = b[1].val;
+	void *val = b[1].val;
 	
 	/* pull last item to top, then down heap. */
 	q->n--;

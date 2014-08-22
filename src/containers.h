@@ -1,28 +1,48 @@
 #pragma once
 
-// Queue
 /*
-A queue of ints implemented as a singly linked list
+Philosophy:
+Encapsulation is cumbersome, so all structs are exposed.
+However, it is recommended to treat all struct members as read-only.
 */
-typedef struct Node Node;
+
+
+// List
+/*
+A singly-linked list of void pointers
+*/
+typedef struct ListNode ListNode;
+struct ListNode {
+	void *val;
+	ListNode *next, *prev;
+};
+
 typedef struct {
-	Node *first, *last;
-} Queue;
+	ListNode *first, *last;
+} List;
 
+void listInit(List *list);
 // O(1)
-void queuePush(Queue *queue, int val);
+void listPush(List *list, void *val);
+void listShift(List *list, void* val);
 // O(1)
-// Returns -1 if no elements are in the queue
-int queuePop(Queue *queue);
+// Returns NULL if no elements are in the list
+void *listPop(List *list);
+void *listTake(List *list);
 // O(n)
-void queueClear(Queue *queue);
-// O(n) [could easily be O(1), but I'm lazy]
-int queueSize(Queue *queue);
+void listClear(List *list);
 
+
+// Stack
+// TODO
 
 
 // Priority queue
-typedef struct PriqNode PriqNode;
+typedef struct {
+	void *val;
+	int pri;
+} PriqNode;
+
 typedef struct {
 	PriqNode *buf;
 	int n;
@@ -31,5 +51,5 @@ typedef struct {
 
 void priqInit(Priq *q, int size);
 void priqDestroy(Priq *q);
-void priqPush(Priq *q, int val, int pri);
-int priqPop(Priq *q);
+void priqPush(Priq *q, void *val, int pri);
+void *priqPop(Priq *q);

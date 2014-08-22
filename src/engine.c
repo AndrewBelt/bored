@@ -21,7 +21,7 @@ void engineCheckEvent(SDL_Event *event) {
 	
 	case SDL_MOUSEBUTTONDOWN:
 		if (event->button.button == SDL_BUTTON_LEFT) {
-			map.task = map.hover;
+			mapAddTask(map.hover);
 		}
 		break;
 	

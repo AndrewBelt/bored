@@ -34,7 +34,13 @@ void listClear(List *list);
 
 
 // Stack
-// TODO
+typedef struct {
+	// TODO
+} Stack;
+
+void stackInit();
+void stackPush(void *val);
+void *stackPop();
 
 
 // Priority queue

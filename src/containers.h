@@ -1,10 +1,18 @@
 #pragma once
+#include <stdbool.h>
+#include <stdint.h>
 
 /*
 Philosophy:
 Encapsulation is cumbersome, so all structs are exposed.
 However, it is recommended to treat all struct members as read-only.
 */
+
+// 2D Vector
+
+typedef struct {
+	int x, y;
+} Vector;
 
 
 // List
@@ -13,7 +21,7 @@ A singly-linked list of void pointers
 */
 typedef struct ListNode ListNode;
 struct ListNode {
-	void *val;
+	void *el;
 	ListNode *next, *prev;
 };
 
@@ -23,8 +31,8 @@ typedef struct {
 
 void listInit(List *list);
 // O(1)
-void listPush(List *list, void *val);
-void listShift(List *list, void* val);
+void listPush(List *list, void *el);
+void listShift(List *list, void *el);
 // O(1)
 // Returns NULL if no elements are in the list
 void *listPop(List *list);
@@ -38,14 +46,14 @@ typedef struct {
 	// TODO
 } Stack;
 
-void stackInit();
-void stackPush(void *val);
-void *stackPop();
+void stackInit(Stack *stack);
+void stackPush(Stack *stack, void *el);
+void *stackPop(Stack *stack);
 
 
-// Priority queue
+// Priority queue of Vector elements
 typedef struct {
-	void *val;
+	Vector el;
 	int pri;
 } PriqNode;
 
@@ -55,7 +63,8 @@ typedef struct {
 	int alloc;
 } Priq;
 
-void priqInit(Priq *q, int size);
+void priqInit(Priq *q);
 void priqDestroy(Priq *q);
-void priqPush(Priq *q, void *val, int pri);
-void *priqPop(Priq *q);
+void priqPush(Priq *q, Vector el, int pri);
+// Returns true if successful
+bool priqPop(Priq *q, Vector *el);

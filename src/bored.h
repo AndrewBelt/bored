@@ -11,47 +11,37 @@
 #include "containers.h"
 
 
-// generic
-
-typedef struct {
-	int x, y;
-} Vector;
-
-
 // Tile
 
-typedef uint8_t Tile;
+typedef uint16_t Tile;
 
-#define TILE_SIZE 16
 // For now odd tiles collide
+#define TILE_TYPE(tile) ((tile) & 0xff)
+// TODO
+// Use a lookup table for slowness weights
 #define TILE_COLLIDES(tile) ((tile) & 0x1)
-
+#define TILE_TASK(tile) ((tile) >> 8)
 
 // Map
 
-typedef struct Task {
+typedef struct {
 	Vector pos;
-} Task;
+	Vector task;
+	bool hasTask;
+} Minion;
 
 extern struct Map {
 	Vector size;
 	Tile *tiles;
 	Vector hover;
-	Vector player;
-	List tasks;
+	List minions;
 } map;
 
 void mapInit();
+void mapSeed(unsigned int seed);
 void mapDestroy();
 Tile *mapGetTile(Vector pos);
-/*
-Gets the 8 surrounding tiles of a tile
-The order is
-1 2 3
-4 . 5
-6 7 8
-*/
-void mapSurroundingTiles(Tile *center, Tile *surr[8]);
+// Does nothing if the tile cannot be assigned a task
 void mapAddTask(Vector pos);
 
 
@@ -76,6 +66,8 @@ void physStep();
 
 // Gfx
 // Draws the map and other stuff
+
+#define TILE_SIZE 16
 
 extern struct Gfx {
 	SDL_Renderer *renderer;

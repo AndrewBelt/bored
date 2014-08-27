@@ -10,11 +10,8 @@ under the GNU Free Documentation License
 
 
 /* first element in array not used to simplify indices */
-void priqInit(Priq *q, int size) {
-	if (size < 4) {
-		size = 4;
-	}
-	
+void priqInit(Priq *q) {
+	const int size = 4;
 	q->buf = malloc(sizeof(PriqNode) * size);
 	q->alloc = size;
 	q->n = 1;
@@ -24,7 +21,7 @@ void priqDestroy(Priq *q) {
 	free(q->buf);
 }
 
-void priqPush(Priq *q, void *val, int pri) {
+void priqPush(Priq *q, Vector el, int pri) {
 	// Reallocate heap if needed
 	if (q->n >= q->alloc) {
 		q->alloc *= 2;
@@ -39,19 +36,18 @@ void priqPush(Priq *q, void *val, int pri) {
 		buf[n] = buf[m];
 		n = m;
 	}
-	buf[n].val = val;
+	buf[n].el = el;
 	buf[n].pri = pri;
 }
 
-void *priqPop(Priq *q) {
+bool priqPop(Priq *q, Vector *el) {
 	if (q->n == 1) {
-		// Return null if nothing is in the queue
-		return NULL;
+		// Return false if nothing is in the queue
+		return false;
 	}
 	
 	PriqNode *b = q->buf;
-	
-	void *val = b[1].val;
+	*el = b[1].el;
 	
 	/* pull last item to top, then down heap. */
 	q->n--;
@@ -73,5 +69,5 @@ void *priqPop(Priq *q) {
 		q->buf = realloc(q->buf, (q->alloc /= 2) * sizeof(PriqNode));
 	}
 	
-	return val;
+	return true;
 }

@@ -27,7 +27,7 @@ void gfxDestroy() {
 }
 
 void gfxDrawTile(Tile tile, Vector p) {
-	Vector tileSprite = tileSprites[tile];
+	Vector tileSprite = tileSprites[TILE_TYPE(tile)];
 	SDL_Rect src = {
 		tileSprite.x * TILE_SIZE,
 		tileSprite.y * TILE_SIZE,
@@ -63,16 +63,12 @@ void gfxRender() {
 		for (p.x = 0; p.x < map.size.x; p.x++) {
 			Tile tile = *mapGetTile(p);
 			gfxDrawTile(tile, p);
+			if (TILE_TASK(tile)) {
+				// Render task
+				SDL_SetRenderDrawColor(gfx.renderer, 0, 255, 0, 128);
+				gfxDrawRect(p);
+			}
 		}
-	}
-	
-	// Render tasks
-	SDL_SetRenderDrawColor(gfx.renderer, 0, 255, 0, 128);
-	ListNode *taskNode = map.tasks.first;
-	while (taskNode) {
-		Task *task = taskNode->val;
-		gfxDrawRect(task->pos);
-		taskNode = taskNode->next;
 	}
 	
 	// Render hover
@@ -80,7 +76,10 @@ void gfxRender() {
 	gfxDrawRect(map.hover);
 	
 	// Render player
-	gfxDrawTile(2, map.player);
+	for (ListNode *i = map.minions.first; i; i = i->next) {
+		Minion *minion = i->el;
+		gfxDrawTile(2, minion->pos);
+	}
 	
 	SDL_RenderPresent(gfx.renderer);
 }

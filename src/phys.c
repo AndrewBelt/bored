@@ -1,90 +1,94 @@
 #include "bored.h"
 
-inline int tileToIndex(Tile *tile) {
-	return (tile - map.tiles) / sizeof(Tile);
-}
+#define VECT2INDEX(v) (v.x + map.size.x * v.y)
 
-void physWalk() {
-	ListNode *taskNode = map.tasks.first;
-	if (!taskNode) {
-		return;
-	}
+// TODO
+// Everything 
+void minionWalk(Minion *minion) {
+	Vector start = minion->pos;
 	
-	Task *task = taskNode->val;
+	// TODO
+	// Allocate this statically or something.
 	
-	// Instead of finding a path from the player to the target tile,
-	// "pull" the player toward the target by searching a path from
-	// the target to the player.
-	Tile *start = mapGetTile(task->pos);
-	Tile *end = mapGetTile(map.player);
+	Vector *prev = calloc(map.size.x * map.size.y, sizeof(Vector));
+	
+	int *dist = calloc(map.size.x * map.size.y, sizeof(int));
+	dist[VECT2INDEX(start)] = 1;
+	bool *checked = calloc(map.size.x * map.size.y, sizeof(bool));
 	
 	// Initialize priority queue for minimum distance lookup.
 	// The map width is a decent starting size.
 	Priq q;
-	priqInit(&q, map.size.x);
-	priqPush(&q, start, 1);
+	priqInit(&q);
+	priqPush(&q, start, 0);
 	
-	int *dist = calloc(map.size.x * map.size.y, sizeof(int));
-	// 0 means infinity, so set the starting distance to 1
-	dist[tileToIndex(start)] = 1;
-	
-	Tile **prev = calloc(map.size.x * map.size.y, sizeof(Tile*));
-	prev[tileToIndex(start)] = NULL;
-	
-	bool *checked = calloc(map.size.x * map.size.y, sizeof(bool));
-	
-	Tile *u;
-	while ((u = priqPop(&q))) {
+	bool found = false;
+	Vector u;
+	while (priqPop(&q, &u)) {
 		// Skip if already reached
-		if (checked[tileToIndex(u)])
+		if (checked[VECT2INDEX(u)])
 			continue;
-		
 		// We now have the unchecked vertex with the minimum distance.
-		checked[tileToIndex(u)] = true;
+		checked[VECT2INDEX(u)] = true;
 		
-		if (u == end) {
-			// We have found minion
+		Tile *uTile = mapGetTile(u);
+		if (TILE_TASK(*uTile)) {
+			// We have found a task
+			found = true;
 			break;
 		}
 		
-		Tile *surr[8];
-		mapSurroundingTiles(u, surr);
-		
-		for (int i = 0; i < 8; i++) {
-			Tile *v = surr[i];
-			if (v && !TILE_COLLIDES(*v)) {
-				int d = dist[tileToIndex(u)] + 1;
-				if (dist[tileToIndex(v)] == 0 || d < dist[tileToIndex(v)]) {
+		for (int dy = -1; dy <= 1; dy++) {
+			for (int dx = -1; dx <= 1; dx++) {
+				// TODO
+				// Actual collisions
+				
+				Vector v = {u.x + dx, u.y + dy};
+				Tile *vTile = mapGetTile(v);
+				
+				if (!vTile) {
+					continue;
+				}
+				
+				int d = dist[VECT2INDEX(u)] + 1;
+				if (dist[VECT2INDEX(v)] == 0 || d < dist[VECT2INDEX(v)]) {
 					// We have found a better path to v
-					dist[tileToIndex(v)] = d;
-					prev[tileToIndex(v)] = u;
+					dist[VECT2INDEX(v)] = d;
+					prev[VECT2INDEX(v)] = u;
 					priqPush(&q, v, d);
 				}
 			}
 		}
 	}
 	
-	// Move player along the last edge in the path
-	if (u) {
-		Tile *u2 = prev[tileToIndex(u)];
-		if (u2) {
-			if (u2 == start) {
-				listPop(&map.tasks);
-			}
-			else {
-				int index = tileToIndex(u2);
-				map.player.x = index % map.size.x;
-				map.player.y = index / map.size.y;
-			}
+	priqDestroy(&q);
+	free(checked);
+	free(dist);
+	
+	// Rewind path to start
+	if (found) {
+		Vector w = u;
+		while (!(u.x == start.x && u.y == start.y)) {
+			w = u;
+			u = prev[VECT2INDEX(u)];
+		}
+		
+		Tile *taskTile = mapGetTile(w);
+		if (TILE_TASK(*taskTile)) {
+			*taskTile = *taskTile && 0xff;
+		}
+		else {
+			minion->pos = w;
 		}
 	}
 	
-	free(checked);
 	free(prev);
-	free(dist);
-	priqDestroy(&q);
 }
 
 void physStep() {
-	physWalk();
+	/*
+	for (ListNode *i = map.minions.first; i; i = i->next) {
+		minionWalk(i->el);
+	}
+	*/
 }

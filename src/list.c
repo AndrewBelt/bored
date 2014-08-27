@@ -6,9 +6,9 @@ void listInit(List *list) {
 	list->last = NULL;
 }
 
-void listPush(List *list, void *val) {
+void listPush(List *list, void *el) {
 	ListNode *node = malloc(sizeof(ListNode));
-	node->val = val;
+	node->el = el;
 	node->next = NULL;
 	
 	ListNode *last = list->last;
@@ -22,9 +22,9 @@ void listPush(List *list, void *val) {
 	list->last = node;
 }
 
-void listShift(List *list, void* val) {
+void listShift(List *list, void* el) {
 	ListNode *node = malloc(sizeof(ListNode));
-	node->val = val;
+	node->el = el;
 	node->prev = NULL;
 	
 	ListNode *first = list->first;
@@ -46,9 +46,9 @@ void *listPop(List *list) {
 			list->last = NULL;
 		}
 		
-		void *val = first->val;
+		void *el = first->el;
 		free(first);
-		return val;
+		return el;
 	}
 	else {
 		return NULL;
@@ -63,9 +63,9 @@ void *listTake(List *list) {
 			list->first = NULL;
 		}
 		
-		void *val = last->val;
+		void *el = last->el;
 		free(last);
-		return val;
+		return el;
 	}
 	else {
 		return NULL;

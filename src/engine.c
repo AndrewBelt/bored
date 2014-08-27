@@ -63,6 +63,7 @@ void engineInit() {
 	
 	gfxInit();
 	mapInit();
+	mapSeed(rand());
 }
 
 void engineDestroy() {

@@ -1,14 +1,11 @@
 #include "bored.h"
 
-#define PI 3.141592653589793
-
 struct Map map;
 
 void mapInit() {
 	map.size = (Vector){64, 64};
 	map.tiles = calloc(map.size.x * map.size.y, sizeof(Tile));
 	
-	map.hover = (Vector){-1, -1};
 	listInit(&map.minions);
 	
 	// TEMP
@@ -70,12 +67,35 @@ Tile *mapGetTile(Vector pos) {
 	}
 }
 
-void mapAddTask(Vector pos) {
-	Tile *tile = mapGetTile(pos);
-	if (tile) {
-		// Only allow rock tiles that haven't yet been assigned a task
-		if (tile->type == 1) {
-			tile->task = 255;
+void mapSelect() {
+	Vector selMin = mapSelMin();
+	Vector selMax = mapSelMax();
+	Vector sel;
+	for (sel.y = selMin.y; sel.y <= selMax.y; sel.y++) {
+		for (sel.x = selMin.x; sel.x <= selMax.x; sel.x++) {
+			Tile *tile = mapGetTile(sel);
+			
+			if (tile) {
+				// Only select rock
+				if (tile->type == 1) {
+					tile->task = 255;
+				}
+			}
+		}
+	}
+}
+
+void mapDeselect() {
+	Vector selMin = mapSelMin();
+	Vector selMax = mapSelMax();
+	Vector sel;
+	for (sel.y = selMin.y; sel.y <= selMax.y; sel.y++) {
+		for (sel.x = selMin.x; sel.x <= selMax.x; sel.x++) {
+			Tile *tile = mapGetTile(sel);
+			
+			if (tile) {
+				tile->task = 0;
+			}
 		}
 	}
 }

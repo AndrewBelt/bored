@@ -11,6 +11,22 @@
 #include "containers.h"
 
 
+// Maths
+
+#define PI 3.141592653589793
+
+inline int min(int a, int b) {
+	return (a < b) ? a : b;
+}
+
+inline int max(int a, int b) {
+	return (a > b) ? a : b;
+}
+
+inline int eucDiv(int a, int b) {
+	return (a - (a<0 ? b-1 : 0)) / b;
+}
+
 // Tile
 
 typedef struct {
@@ -29,16 +45,23 @@ typedef struct {
 extern struct Map {
 	Vector size;
 	Tile *tiles;
-	Vector hover;
 	List minions;
+	Vector selStart, selEnd;
 } map;
 
 void mapInit();
 void mapSeed(unsigned int seed);
 void mapDestroy();
 Tile *mapGetTile(Vector pos);
+inline Vector mapSelMin() {
+	return (Vector){min(map.selStart.x, map.selEnd.x), min(map.selStart.y, map.selEnd.y)};
+}
+inline Vector mapSelMax() {
+	return (Vector){max(map.selStart.x, map.selEnd.x), max(map.selStart.y, map.selEnd.y)};
+}
 // Does nothing if the tile cannot be assigned a task
-void mapAddTask(Vector pos);
+void mapSelect();
+void mapDeselect();
 
 
 // Engine

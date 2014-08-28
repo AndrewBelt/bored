@@ -42,7 +42,7 @@ void gfxDrawSprite(uint8_t type, Vector p) {
 	SDL_RenderCopy(gfx.renderer, gfx.tileTexture, &src, &dst);
 }
 
-void gfxDrawRect(Vector p) {
+void gfxDrawOverlay(Vector p) {
 	SDL_Rect dst = {
 		gfx.offset.x + p.x*TILE_SIZE*gfx.zoom,
 		gfx.offset.y + p.y*TILE_SIZE*gfx.zoom,
@@ -66,14 +66,21 @@ void gfxRender() {
 			if (tile->task) {
 				// Render task
 				SDL_SetRenderDrawColor(gfx.renderer, 0, 255, 0, 128);
-				gfxDrawRect(p);
+				gfxDrawOverlay(p);
 			}
 		}
 	}
 	
-	// Render hover
+	// Render selection
 	SDL_SetRenderDrawColor(gfx.renderer, 255, 0, 0, 128);
-	gfxDrawRect(map.hover);
+	Vector selMin = mapSelMin();
+	Vector selMax = mapSelMax();
+	Vector sel;
+	for (sel.y = selMin.y; sel.y <= selMax.y; sel.y++) {
+		for (sel.x = selMin.x; sel.x <= selMax.x; sel.x++) {
+			gfxDrawOverlay(sel);
+		}
+	}
 	
 	// Render player
 	for (ListNode *i = map.minions.first; i; i = i->next) {

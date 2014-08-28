@@ -9,23 +9,35 @@ void engineCheckEvent(SDL_Event *event) {
 		break;
 	
 	case SDL_MOUSEMOTION:
-		if (event->motion.state == SDL_BUTTON_RMASK) {
+		if (event->motion.state & SDL_BUTTON_RMASK) {
 			gfx.offset.x += event->motion.xrel;
 			gfx.offset.y += event->motion.yrel;
 		}
-		map.hover = (Vector){
-			(event->motion.x - gfx.offset.x) / (TILE_SIZE*gfx.zoom),
-			(event->motion.y - gfx.offset.y) / (TILE_SIZE*gfx.zoom),
+		map.selEnd = (Vector){
+			eucDiv(event->motion.x - gfx.offset.x, TILE_SIZE*gfx.zoom),
+			eucDiv(event->motion.y - gfx.offset.y, TILE_SIZE*gfx.zoom),
 		};
-		break;
-	
-	case SDL_MOUSEBUTTONDOWN:
-		if (event->button.button == SDL_BUTTON_LEFT) {
-			mapAddTask(map.hover);
+		if (!(event->motion.state & SDL_BUTTON_LMASK)) {
+			map.selStart = map.selEnd;
 		}
 		break;
 	
+	case SDL_MOUSEBUTTONDOWN:
+		break;
+	
 	case SDL_MOUSEBUTTONUP:
+		if (event->button.button == SDL_BUTTON_LEFT) {
+			// Holding in CTRL deselects the block
+			SDL_Keymod mod = SDL_GetModState();
+			if (mod & KMOD_CTRL) {
+				mapDeselect();
+			}
+			else {
+				mapSelect();
+			}
+			
+			map.selStart = map.selEnd;
+		}
 		break;
 	
 	case SDL_KEYDOWN:

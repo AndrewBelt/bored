@@ -13,14 +13,10 @@
 
 // Tile
 
-typedef uint16_t Tile;
-
-// For now odd tiles collide
-#define TILE_TYPE(tile) ((tile) & 0xff)
-// TODO
-// Use a lookup table for slowness weights
-#define TILE_COLLIDES(tile) ((tile) & 0x1)
-#define TILE_TASK(tile) ((tile) >> 8)
+typedef struct {
+	uint8_t type;
+	uint8_t task;
+} Tile;
 
 // Map
 

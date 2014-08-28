@@ -2,7 +2,7 @@
 
 struct Gfx gfx;
 
-static Vector tileSprites[256] = {
+static Vector sprites[256] = {
 	[0x00] = {0, 0},
 	[0x01] = {1, 0},
 	[0x02] = {2, 0},
@@ -26,11 +26,11 @@ void gfxDestroy() {
 	SDL_DestroyRenderer(gfx.renderer);
 }
 
-void gfxDrawTile(Tile tile, Vector p) {
-	Vector tileSprite = tileSprites[TILE_TYPE(tile)];
+void gfxDrawSprite(uint8_t type, Vector p) {
+	Vector sprite = sprites[type];
 	SDL_Rect src = {
-		tileSprite.x * TILE_SIZE,
-		tileSprite.y * TILE_SIZE,
+		sprite.x * TILE_SIZE,
+		sprite.y * TILE_SIZE,
 		TILE_SIZE, TILE_SIZE
 	};
 	SDL_Rect dst = {
@@ -61,9 +61,9 @@ void gfxRender() {
 	Vector p;
 	for (p.y = 0; p.y < map.size.y; p.y++) {
 		for (p.x = 0; p.x < map.size.x; p.x++) {
-			Tile tile = *mapGetTile(p);
-			gfxDrawTile(tile, p);
-			if (TILE_TASK(tile)) {
+			Tile *tile = mapGetTile(p);
+			gfxDrawSprite(tile->type, p);
+			if (tile->task) {
 				// Render task
 				SDL_SetRenderDrawColor(gfx.renderer, 0, 255, 0, 128);
 				gfxDrawRect(p);
@@ -78,7 +78,7 @@ void gfxRender() {
 	// Render player
 	for (ListNode *i = map.minions.first; i; i = i->next) {
 		Minion *minion = i->el;
-		gfxDrawTile(2, minion->pos);
+		gfxDrawSprite(2, minion->pos);
 	}
 	
 	SDL_RenderPresent(gfx.renderer);

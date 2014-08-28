@@ -50,7 +50,7 @@ void mapSeed(unsigned int seed) {
 			}
 			
 			Tile *tile = mapGetTile(pos);
-			*tile = (sum > -0.1) ? 0 : 1;
+			tile->type = (sum > -0.1) ? 0 : 1;
 		}
 	}
 }
@@ -74,8 +74,8 @@ void mapAddTask(Vector pos) {
 	Tile *tile = mapGetTile(pos);
 	if (tile) {
 		// Only allow rock tiles that haven't yet been assigned a task
-		if (*tile == 1) {
-			*tile |= 0xff00;
+		if (tile->type == 1) {
+			tile->task = 255;
 		}
 	}
 }

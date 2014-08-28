@@ -3,7 +3,8 @@
 #define VECT2INDEX(v) (v.x + map.size.x * v.y)
 
 // TODO
-// Everything 
+// Everything
+/*
 void minionWalk(Minion *minion) {
 	Vector start = minion->pos;
 	
@@ -84,6 +85,7 @@ void minionWalk(Minion *minion) {
 	
 	free(prev);
 }
+*/
 
 void physStep() {
 	/*

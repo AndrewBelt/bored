@@ -11,7 +11,7 @@ However, it is recommended to treat all struct members as read-only.
 // 2D Vector
 
 typedef struct {
-	int x, y;
+	int32_t x, y;
 } Vector;
 
 

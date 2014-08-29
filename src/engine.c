@@ -29,7 +29,7 @@ void engineCheckEvent(SDL_Event *event) {
 		if (event->button.button == SDL_BUTTON_LEFT) {
 			// Holding in CTRL deselects the block
 			SDL_Keymod mod = SDL_GetModState();
-			if (mod & KMOD_CTRL) {
+			if (mod & KMOD_SHIFT) {
 				mapDeselect();
 			}
 			else {
@@ -61,6 +61,9 @@ void engineRun() {
 		if (engine.frame % 8 == 0) {
 			physStep();
 		}
+		if (engine.frame % 64 == 0) {
+			gfxMinimapRefresh();
+		}
 		gfxRender();
 		
 		engine.frame++;
@@ -68,14 +71,15 @@ void engineRun() {
 }
 
 void engineInit() {
-	assert(!SDL_Init(SDL_INIT_VIDEO));
+	int err = SDL_Init(SDL_INIT_VIDEO);
+	assert(!err);
 	
 	engine.window = SDL_CreateWindow("bored", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 768, 0);
 	assert(engine.window);
 	
-	gfxInit();
 	mapInit();
 	mapSeed(rand());
+	gfxInit();
 }
 
 void engineDestroy() {

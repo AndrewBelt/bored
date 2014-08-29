@@ -18,11 +18,9 @@
 inline int min(int a, int b) {
 	return (a < b) ? a : b;
 }
-
 inline int max(int a, int b) {
 	return (a > b) ? a : b;
 }
-
 inline int eucDiv(int a, int b) {
 	return (a - (a<0 ? b-1 : 0)) / b;
 }
@@ -50,7 +48,7 @@ extern struct Map {
 } map;
 
 void mapInit();
-void mapSeed(unsigned int seed);
+void mapSeed(uint32_t seed);
 void mapDestroy();
 Tile *mapGetTile(Vector pos);
 inline Vector mapSelMin() {
@@ -90,11 +88,15 @@ void physStep();
 
 extern struct Gfx {
 	SDL_Renderer *renderer;
-	SDL_Texture *tileTexture;
+	SDL_Texture *spritesheet;
+	SDL_Texture *minimap;
 	Vector offset;
 	int zoom;
+	// Actually the inverse zoom
+	int minimapZoom;
 } gfx;
 
 void gfxInit();
 void gfxDestroy();
 void gfxRender();
+void gfxMinimapRefresh();

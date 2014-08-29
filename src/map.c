@@ -3,7 +3,7 @@
 struct Map map;
 
 void mapInit() {
-	map.size = (Vector){64, 64};
+	map.size = (Vector){256, 256};
 	map.tiles = calloc(map.size.x * map.size.y, sizeof(Tile));
 	
 	listInit(&map.minions);
@@ -12,44 +12,121 @@ void mapInit() {
 	/*
 	for (int i = 0; i < 10; i++) {
 		Minion *minion = calloc(1, sizeof(Minion));
-		minion->pos = (Vector){rand()%map.size.x, rand()&map.size.y};
+		minion->p = (Vector){rand()%map.size.x, rand()&map.size.y};
 		listPush(&map.minions, minion);
 	}
 	*/
 }
 
-void mapSeed(unsigned int seed) {
-	srand(seed);
-	#define SEED_TERMS 7
-	float xA[SEED_TERMS] = {0};
-	float yA[SEED_TERMS] = {0};
-	float xP[SEED_TERMS] = {0};
-	float yP[SEED_TERMS] = {0};
+/*
+Uses diamond-square algorithm to generate heightmap to
+generate a float array of size (size.x + 1)*(size.y + 1).
+Assumes the size is a square with sides power of two.
+The pitch of the array is (size.x + 1).
+The caller must free.
+*/
+float *mapGenHeightmap(Vector size) {
+	assert(size.x == size.y);
+	assert((size.x & (size.x - 1)) == 0); // Check power of two
 	
-	// Randomize the phase and amplitude in the x and y direction
-	for (int i = 1; i < SEED_TERMS; i++) {
-		xA[i] = (float) rand() / RAND_MAX * 2 - 1;
-		yA[i] = (float) rand() / RAND_MAX * 2 - 1;
-		xP[i] = (float) rand() / RAND_MAX;
-		yP[i] = (float) rand() / RAND_MAX;
+	float *h = calloc((size.x + 1) * (size.y + 1), sizeof(float));
+	const int pitch = size.x + 1;
+	
+	// Block size
+	Vector bs = size;
+	while (bs.x >= 2 && bs.y >= 2) {
+		// Block position
+		Vector b;
+		for (b.y = 0; b.y < size.y; b.y += bs.y) {
+			for (b.x = 0; b.x < size.x; b.x += bs.x) {
+				// Get four corners of block
+				float tl = h[(b.x)        + pitch * (b.y)];
+				float tr = h[(b.x + bs.x) + pitch * (b.y)];
+				float bl = h[(b.x)        + pitch * (b.y + bs.y)];
+				float br = h[(b.x + bs.x) + pitch * (b.y + bs.y)];
+				
+				// Compute diamond
+				float ml = (tl + bl)/2;
+				float mr = (tr + br)/2;
+				float tm = (tl + tr)/2;
+				float bm = (bl + br)/2;
+				ml += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				// mr += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				tm += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				// bm += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				
+				// Compute midpoint
+				float mm = (ml + mr + tm + bm)/4;
+				mm += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				
+				// Store points
+				h[(b.x)          + pitch * (b.y + bs.y/2)] = ml;
+				h[(b.x + bs.x)   + pitch * (b.y + bs.y/2)] = mr;
+				h[(b.x + bs.x/2) + pitch * (b.y)]          = tm;
+				h[(b.x + bs.x/2) + pitch * (b.y + bs.y)]   = bm;
+				h[(b.x + bs.x/2) + pitch * (b.y + bs.y/2)] = mm;
+			}
+		}
+		
+		bs.x /= 2;
+		bs.y /= 2;
 	}
 	
-	Vector pos;
-	for (pos.y = 0; pos.y < map.size.y; pos.y++) {
-		for (pos.x = 0; pos.x < map.size.x; pos.x++) {
-			float xF = (float) pos.x / map.size.x;
-			float yF = (float) pos.y / map.size.y;
-			float sum = 0.0;
+	return h;
+}
+
+void mapGenTerrain() {
+	float *heightmap = mapGenHeightmap(map.size);
+	
+	// Convert the heightmap to tile types
+	Vector p;
+	for (p.y = 0; p.y < map.size.y; p.y++) {
+		for (p.x = 0; p.x < map.size.x; p.x++) {
+			float height = heightmap[p.x + (map.size.x + 1) * p.y];
+			Tile *tile = mapGetTile(p);
 			
-			for (int i = 0; i < SEED_TERMS; i++) {
-				sum += xA[i] * sinf(2*PI * (xF*i/5 + xP[i])) / (i+1);
-				sum += yA[i] * sinf(2*PI * (yF*i/5 + yP[i])) / (i+1);
+			if (height < -40.0) {
+				tile->type = 0x02;
 			}
-			
-			Tile *tile = mapGetTile(pos);
-			tile->type = (sum > -0.1) ? 0 : 1;
+			else if (height < -30.0) {
+				tile->type = 0x03;
+			}
+			else if (height < 40.0) {
+				tile->type = 0x00;
+			}
+			else {
+				tile->type = 0x01;
+			}
 		}
 	}
+	
+	free(heightmap);
+}
+
+// Generates scatter objects, e.g. trees
+void mapGenScatter() {
+	float *heightmap = mapGenHeightmap(map.size);
+	
+	Vector p;
+	for (p.y = 0; p.y < map.size.y; p.y++) {
+		for (p.x = 0; p.x < map.size.x; p.x++) {
+			float height = heightmap[p.x + (map.size.x + 1) * p.y];
+			Tile *tile = mapGetTile(p);
+			
+			// Scatter dirt tiles
+			if (tile->type == 0) {
+				if (height > 0.0 && rand() % 4 == 0) {
+					tile->type = 16;
+				}
+			}
+		}
+	}
+}
+
+void mapSeed(uint32_t seed) {
+	srand(seed);
+	mapGenTerrain();
+	mapGenScatter();
 }
 
 void mapDestroy() {
@@ -57,10 +134,10 @@ void mapDestroy() {
 }
 
 // Returns a pointer to the tile, or NULL if it is out of bounds
-Tile *mapGetTile(Vector pos) {
-	if (0 <= pos.x && pos.x < map.size.x
-		&& 0 <= pos.y && pos.y < map.size.y) {
-		return &map.tiles[pos.x + map.size.x * pos.y];
+Tile *mapGetTile(Vector p) {
+	if (0 <= p.x && p.x < map.size.x
+		&& 0 <= p.y && p.y < map.size.y) {
+		return &map.tiles[p.x + map.size.x * p.y];
 	}
 	else {
 		return NULL;
@@ -76,9 +153,10 @@ void mapSelect() {
 			Tile *tile = mapGetTile(sel);
 			
 			if (tile) {
-				// Only select rock
-				if (tile->type == 1) {
-					tile->task = 255;
+				switch (tile->type) {
+					case 1:
+					case 16:
+						tile->task = 255;
 				}
 			}
 		}

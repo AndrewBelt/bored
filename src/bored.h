@@ -25,6 +25,10 @@ inline int eucDiv(int a, int b) {
 	return (a - (a<0 ? b-1 : 0)) / b;
 }
 
+typedef struct {
+	int32_t x, y;
+} Vector;
+
 // Tile
 
 typedef struct {
@@ -48,8 +52,8 @@ extern struct Map {
 } map;
 
 void mapInit();
-void mapSeed(uint32_t seed);
 void mapDestroy();
+void mapSeed(uint32_t seed);
 Tile *mapGetTile(Vector pos);
 inline Vector mapSelMin() {
 	return (Vector){min(map.selStart.x, map.selEnd.x), min(map.selStart.y, map.selEnd.y)};

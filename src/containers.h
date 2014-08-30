@@ -8,13 +8,6 @@ Encapsulation is cumbersome, so all structs are exposed.
 However, it is recommended to treat all struct members as read-only.
 */
 
-// 2D Vector
-
-typedef struct {
-	int32_t x, y;
-} Vector;
-
-
 // List
 /*
 A singly-linked list of void pointers
@@ -51,9 +44,9 @@ void stackPush(Stack *stack, void *el);
 void *stackPop(Stack *stack);
 
 
-// Priority queue of Vector elements
+// Priority queue of ints
 typedef struct {
-	Vector el;
+	int el;
 	int pri;
 } PriqNode;
 
@@ -65,6 +58,6 @@ typedef struct {
 
 void priqInit(Priq *q);
 void priqDestroy(Priq *q);
-void priqPush(Priq *q, Vector el, int pri);
+void priqPush(Priq *q, int el, int pri);
 // Returns true if successful
-bool priqPop(Priq *q, Vector *el);
+bool priqPop(Priq *q, int *el);

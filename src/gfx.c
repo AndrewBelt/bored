@@ -97,10 +97,10 @@ void gfxRender() {
 		}
 	}
 	
-	// Render player
+	// Render minions
 	for (ListNode *i = map.minions.first; i; i = i->next) {
 		Minion *minion = i->el;
-		gfxDrawSprite(0xff, minion->pos);
+		gfxDrawSprite(0xf0, minion->pos);
 	}
 	
 	// Render minimap

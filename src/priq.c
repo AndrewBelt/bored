@@ -21,7 +21,7 @@ void priqDestroy(Priq *q) {
 	free(q->buf);
 }
 
-void priqPush(Priq *q, Vector el, int pri) {
+void priqPush(Priq *q, int el, int pri) {
 	// Reallocate heap if needed
 	if (q->n >= q->alloc) {
 		q->alloc *= 2;
@@ -40,7 +40,7 @@ void priqPush(Priq *q, Vector el, int pri) {
 	buf[n].pri = pri;
 }
 
-bool priqPop(Priq *q, Vector *el) {
+bool priqPop(Priq *q, int *el) {
 	if (q->n == 1) {
 		// Return false if nothing is in the queue
 		return false;

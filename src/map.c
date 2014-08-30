@@ -7,15 +7,10 @@ void mapInit() {
 	map.tiles = calloc(map.size.x * map.size.y, sizeof(Tile));
 	
 	listInit(&map.minions);
-	
-	// TEMP
-	/*
-	for (int i = 0; i < 10; i++) {
-		Minion *minion = calloc(1, sizeof(Minion));
-		minion->p = (Vector){rand()%map.size.x, rand()&map.size.y};
-		listPush(&map.minions, minion);
-	}
-	*/
+}
+
+void mapDestroy() {
+	listClear(&map.minions);
 }
 
 /*
@@ -114,9 +109,9 @@ void mapGenScatter() {
 			Tile *tile = mapGetTile(p);
 			
 			// Scatter dirt tiles
-			if (tile->type == 0) {
+			if (tile->type == 0x00) {
 				if (height > 0.0 && rand() % 4 == 0) {
-					tile->type = 16;
+					tile->type = 0x10;
 				}
 			}
 		}
@@ -127,10 +122,13 @@ void mapSeed(uint32_t seed) {
 	srand(seed);
 	mapGenTerrain();
 	mapGenScatter();
-}
-
-void mapDestroy() {
-	listClear(&map.minions);
+	
+	// Create some minions
+	for (int i = 0; i < 1; i++) {
+		Minion *minion = calloc(1, sizeof(Minion));
+		minion->pos = (Vector){i, 0};
+		listPush(&map.minions, minion);
+	}
 }
 
 // Returns a pointer to the tile, or NULL if it is out of bounds

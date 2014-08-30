@@ -31,7 +31,6 @@ void minionWalk(Minion *minion) {
 	
 	int endIndex = -1;
 	int uIndex;
-	int loops = 0;
 	while (priqPop(&q, &uIndex)) {
 		// Skip if already reached
 		if (checked[uIndex]) {
@@ -65,6 +64,9 @@ void minionWalk(Minion *minion) {
 					continue;
 				}
 				
+				// Reduce random diagonal movement by forcing L_2 distance
+				weight *= (abs(dx) + abs(dy) == 2) ? 181 : 128;
+				
 				int vIndex = VECT2INDEX(v);
 				int d = dist[uIndex] + weight;
 				if (dist[vIndex] == 0 || d < dist[vIndex]) {
@@ -75,9 +77,7 @@ void minionWalk(Minion *minion) {
 				}
 			}
 		}
-		loops++;
 	}
-	printf("%d\n", loops);
 	
 	priqDestroy(&q);
 	free(checked);

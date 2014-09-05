@@ -151,11 +151,7 @@ void mapSelect() {
 			Tile *tile = mapGetTile(sel);
 			
 			if (tile) {
-				switch (tile->type) {
-					case 1:
-					case 16:
-						tile->task = 255;
-				}
+				tile->task = tileTypes[tile->type].taskType.difficulty;
 			}
 		}
 	}

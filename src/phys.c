@@ -3,15 +3,19 @@
 #define VECT2INDEX(v) (v.x + map.size.x * v.y)
 #define INDEX2VECT(i) (Vector){i % map.size.x, i / map.size.x}
 
-// Inverse speeds for walking.
-// Measures the difficulty of walking on a particular tile.
-// 0 means infinity, or collides
-// TODO
-// Actually support different speed weights for minions
-int weights[256] = {
-	[0x00] = 1,
-	[0x03] = 4,
-};
+
+void taskStep(Vector p) {
+	Tile *tile = mapGetTile(p);
+	assert(tile->task > 0);
+	
+	// Work on task
+	tile->task--;
+	
+	if (tile->task == 0) {
+		// Complete task
+		tile->type = tileTypes[tile->type].taskType.goalTile;
+	}
+}
 
 void minionWalk(Minion *minion) {
 	// TODO
@@ -59,7 +63,10 @@ void minionWalk(Minion *minion) {
 				// TODO
 				// Actual collisions
 				
-				int weight = (vTile->task) ? 1 : weights[vTile->type];
+				int weight = 1;
+				if (vTile->task == 0) {
+					weight = tileTypes[vTile->type].walkWeight;
+				}
 				if (weight == 0) {
 					continue;
 				}
@@ -93,12 +100,7 @@ void minionWalk(Minion *minion) {
 		
 		Vector w = INDEX2VECT(wIndex);
 		if (wIndex == endIndex) {
-			// Complete task
-			// TODO
-			// Outsource this to another function
-			Tile *taskTile = mapGetTile(w);
-			taskTile->task = 0;
-			taskTile->type = 0x00;
+			taskStep(w);
 		}
 		else {
 			// Walk toward the task

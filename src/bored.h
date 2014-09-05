@@ -29,14 +29,24 @@ typedef struct {
 	int32_t x, y;
 } Vector;
 
-// Tile
+// tile.c
 
 typedef struct {
 	uint8_t type;
 	uint8_t task;
 } Tile;
 
-// Map
+extern struct TileType {
+	// 0 means collides, 1 means fastest to walk on
+	int walkWeight;
+	struct TaskType {
+		// 0 means a task cannot be set for this tile
+		uint8_t difficulty;
+		uint8_t goalTile;
+	} taskType;
+} tileTypes[256];
+
+// map.c
 
 typedef struct {
 	Vector pos;
@@ -66,7 +76,7 @@ void mapSelect();
 void mapDeselect();
 
 
-// Engine
+// engine.c
 
 extern struct Engine {
 	SDL_Window *window;
@@ -80,12 +90,12 @@ void engineInit();
 void engineDestroy();
 
 
-// Phys
+// phys.c
 
 void physStep();
 
 
-// Gfx
+// gfx.c
 // Draws the map and other stuff
 
 #define TILE_SIZE 16

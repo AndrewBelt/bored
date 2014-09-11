@@ -17,6 +17,8 @@ void taskStep(Vector p) {
 	}
 }
 
+// FIXME
+// Only works with one minion
 void minionWalk(Minion *minion) {
 	// TODO
 	// Allocate these statically or something.

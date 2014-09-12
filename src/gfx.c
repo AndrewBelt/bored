@@ -14,14 +14,14 @@ Pixel tileColors[256] = {
 
 void gfxInit() {
 	// Load font
-	gfx.mainFont = TTF_OpenFont("DejaVuSans.ttf", 16);
+	gfx.mainFont = TTF_OpenFont("res/DejaVuSans.ttf", 16);
 	assert(gfx.mainFont);
 	
 	// Create rendering context (software or OpenGL context)
 	gfx.renderer = SDL_CreateRenderer(engine.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	
 	// Load tileset
-	SDL_Surface *spritesheetSurf = IMG_Load("tiles.png");
+	SDL_Surface *spritesheetSurf = IMG_Load("res/tiles.png");
 	gfx.spritesheet = SDL_CreateTextureFromSurface(gfx.renderer, spritesheetSurf);
 	SDL_FreeSurface(spritesheetSurf);
 	

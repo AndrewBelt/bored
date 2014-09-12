@@ -246,10 +246,14 @@ void mapDeselect() {
 bool mapHandleEvent(SDL_Event *event) {
 	switch (event->type) {
 	case SDL_MOUSEMOTION:
+		// Drag the map with the right mouse button
 		if (event->motion.state & SDL_BUTTON_RMASK) {
-			map.offset.x += event->motion.xrel;
-			map.offset.y += event->motion.yrel;
+			map.offset.x += event->motion.x - map.dragPos.x;
+			map.offset.y += event->motion.y - map.dragPos.y;
+			SDL_WarpMouseInWindow(engine.window, map.dragPos.x, map.dragPos.y);
 		}
+		
+		// Update block selection
 		map.selEnd = (Vector){
 			eucDiv(event->motion.x - map.offset.x, TILE_SIZE*map.zoom),
 			eucDiv(event->motion.y - map.offset.y, TILE_SIZE*map.zoom),
@@ -260,11 +264,16 @@ bool mapHandleEvent(SDL_Event *event) {
 		break;
 	
 	case SDL_MOUSEBUTTONDOWN:
+		if (event->button.button == SDL_BUTTON_RIGHT) {
+			// Capture cursor for map dragging
+			SDL_GetMouseState(&map.dragPos.x, &map.dragPos.y);
+			SDL_ShowCursor(0);
+		}
 		break;
 	
 	case SDL_MOUSEBUTTONUP:
 		if (event->button.button == SDL_BUTTON_LEFT) {
-			// Holding in CTRL deselects the block
+			// Holding in SHIFT deselects the block
 			SDL_Keymod mod = SDL_GetModState();
 			if (mod & KMOD_SHIFT) {
 				mapDeselect();
@@ -275,7 +284,19 @@ bool mapHandleEvent(SDL_Event *event) {
 			
 			map.selStart = map.selEnd;
 		}
+		else if (event->button.button == SDL_BUTTON_RIGHT) {
+			// Uncapture cursor
+			SDL_ShowCursor(1);
+		}
 		break;
+		
+	case SDL_KEYDOWN:
+		if (event->key.keysym.sym == SDLK_1) {
+			map.zoom = 1;
+		}
+		else if (event->key.keysym.sym == SDLK_2) {
+			map.zoom = 2;
+		}
 	}
 	
 	return true;

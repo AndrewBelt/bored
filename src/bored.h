@@ -92,8 +92,11 @@ extern struct Map {
 	Tile *tiles;
 	List minions;
 	Vector selStart, selEnd;
+	// appearance
 	Vector offset;
 	int zoom;
+	// behavior
+	Vector dragPos;
 } map;
 
 void mapInit();

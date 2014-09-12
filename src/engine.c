@@ -71,7 +71,11 @@ void engineRun() {
 }
 
 void engineInit() {
-	int err = SDL_Init(SDL_INIT_VIDEO);
+	int err;
+	err = SDL_Init(SDL_INIT_VIDEO);
+	assert(!err);
+	
+	err = TTF_Init();
 	assert(!err);
 	
 	engine.window = SDL_CreateWindow("bored", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 768, 0);
@@ -85,6 +89,7 @@ void engineInit() {
 void engineDestroy() {
 	mapDestroy();
 	gfxDestroy();
+	TTF_Quit();
 	SDL_DestroyWindow(engine.window);
 	SDL_Quit();
 }

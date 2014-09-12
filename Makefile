@@ -1,5 +1,5 @@
 CFLAGS = -std=c99 -O3 -Wall -g
-LDFLAGS = -lm -lSDL2 -lSDL2_image
+LDFLAGS = -lm -lSDL2 -lSDL2_image -lSDL2_ttf
 CC = gcc
 
 SRCS = $(wildcard src/*.c)

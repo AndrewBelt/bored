@@ -11,6 +11,7 @@ void mapInit() {
 
 void mapDestroy() {
 	listClear(&map.minions);
+	free(map.tiles);
 }
 
 /*
@@ -18,9 +19,9 @@ Uses diamond-square algorithm to generate heightmap to
 generate a float array of size (size.x + 1)*(size.y + 1).
 Assumes the size is a square with sides power of two.
 The pitch of the array is (size.x + 1).
-The caller must free.
+The caller must free the returned array.
 */
-float *mapGenHeightmap(Vector size) {
+float *generatePlasma(Vector size) {
 	assert(size.x == size.y);
 	assert((size.x & (size.x - 1)) == 0); // Check power of two
 	
@@ -45,14 +46,12 @@ float *mapGenHeightmap(Vector size) {
 				float mr = (tr + br)/2;
 				float tm = (tl + tr)/2;
 				float bm = (bl + br)/2;
-				ml += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
-				// mr += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
-				tm += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
-				// bm += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				ml += ((float) rand() / RAND_MAX * 2 - 1) * bs.y / size.y;
+				tm += ((float) rand() / RAND_MAX * 2 - 1) * bs.x / size.x;
 				
 				// Compute midpoint
 				float mm = (ml + mr + tm + bm)/4;
-				mm += ((float) rand() / RAND_MAX * 2 - 1) * (bs.x);
+				mm += ((float) rand() / RAND_MAX * 2 - 1) * bs.x / size.x;
 				
 				// Store points
 				h[(b.x)          + pitch * (b.y + bs.y/2)] = ml;
@@ -71,7 +70,7 @@ float *mapGenHeightmap(Vector size) {
 }
 
 void mapGenTerrain() {
-	float *heightmap = mapGenHeightmap(map.size);
+	float *heightmap = generatePlasma(map.size);
 	
 	// Convert the heightmap to tile types
 	Vector p;
@@ -80,13 +79,13 @@ void mapGenTerrain() {
 			float height = heightmap[p.x + (map.size.x + 1) * p.y];
 			Tile *tile = mapGetTile(p);
 			
-			if (height < -40.0) {
+			if (height < -0.2) {
 				tile->type = 0x02;
 			}
-			else if (height < -30.0) {
+			else if (height < -0.15) {
 				tile->type = 0x03;
 			}
-			else if (height < 40.0) {
+			else if (height < 0.2) {
 				tile->type = 0x00;
 			}
 			else {
@@ -98,9 +97,9 @@ void mapGenTerrain() {
 	free(heightmap);
 }
 
-// Generates scatter objects, e.g. trees
+// Generates scatter objects
 void mapGenScatter() {
-	float *heightmap = mapGenHeightmap(map.size);
+	float *heightmap = generatePlasma(map.size);
 	
 	Vector p;
 	for (p.y = 0; p.y < map.size.y; p.y++) {
@@ -108,7 +107,7 @@ void mapGenScatter() {
 			float height = heightmap[p.x + (map.size.x + 1) * p.y];
 			Tile *tile = mapGetTile(p);
 			
-			// Scatter dirt tiles
+			// Scatter tree tiles
 			if (tile->type == 0x00) {
 				if (height > 0.0 && rand() % 4 == 0) {
 					tile->type = 0x10;
@@ -133,8 +132,7 @@ void mapSeed(uint32_t seed) {
 
 // Returns a pointer to the tile, or NULL if it is out of bounds
 Tile *mapGetTile(Vector p) {
-	if (0 <= p.x && p.x < map.size.x
-		&& 0 <= p.y && p.y < map.size.y) {
+	if (0 <= p.x && p.x < map.size.x && 0 <= p.y && p.y < map.size.y) {
 		return &map.tiles[p.x + map.size.x * p.y];
 	}
 	else {

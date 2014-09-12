@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include "containers.h"
 
 
@@ -100,7 +101,12 @@ void physStep();
 
 #define TILE_SIZE 16
 
+typedef struct {
+	uint8_t r, g, b, a;
+} Pixel;
+
 extern struct Gfx {
+	TTF_Font *mainFont;
 	SDL_Renderer *renderer;
 	SDL_Texture *spritesheet;
 	SDL_Texture *minimap;

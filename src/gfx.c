@@ -3,10 +3,6 @@
 struct Gfx gfx;
 
 
-typedef struct {
-	uint8_t r, g, b, a;
-} Pixel;
-
 Pixel tileColors[256] = {
 	[0x00] = {109, 170, 44},
 	[0x01] = {211, 125, 44},
@@ -17,6 +13,11 @@ Pixel tileColors[256] = {
 
 
 void gfxInit() {
+	// Load font
+	gfx.mainFont = TTF_OpenFont("DejaVuSans.ttf", 16);
+	assert(gfx.mainFont);
+	
+	// Create rendering context (software or OpenGL context)
 	gfx.renderer = SDL_CreateRenderer(engine.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	
 	// Load tileset
@@ -24,7 +25,7 @@ void gfxInit() {
 	gfx.spritesheet = SDL_CreateTextureFromSurface(gfx.renderer, spritesheetSurf);
 	SDL_FreeSurface(spritesheetSurf);
 	
-	// TODO
+	// FIXME
 	// Why is the byte order of the pixel format reversed??
 	gfx.minimap = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, map.size.x, map.size.y);
 	
@@ -37,6 +38,7 @@ void gfxDestroy() {
 	SDL_DestroyTexture(gfx.minimap);
 	SDL_DestroyTexture(gfx.spritesheet);
 	SDL_DestroyRenderer(gfx.renderer);
+	TTF_CloseFont(gfx.mainFont);
 }
 
 void gfxDrawSprite(uint8_t type, Vector p) {
@@ -47,9 +49,9 @@ void gfxDrawSprite(uint8_t type, Vector p) {
 		TILE_SIZE, TILE_SIZE
 	};
 	SDL_Rect dst = {
-		gfx.offset.x + p.x*TILE_SIZE*gfx.zoom,
-		gfx.offset.y + p.y*TILE_SIZE*gfx.zoom,
-		TILE_SIZE*gfx.zoom, TILE_SIZE*gfx.zoom
+		gfx.offset.x + gfx.zoom * p.x * TILE_SIZE,
+		gfx.offset.y + gfx.zoom * p.y * TILE_SIZE,
+		gfx.zoom * TILE_SIZE, gfx.zoom * TILE_SIZE
 	};
 	
 	SDL_RenderCopy(gfx.renderer, gfx.spritesheet, &src, &dst);
@@ -57,9 +59,9 @@ void gfxDrawSprite(uint8_t type, Vector p) {
 
 void gfxDrawRect(Vector p) {
 	SDL_Rect dst = {
-		gfx.offset.x + p.x*TILE_SIZE*gfx.zoom,
-		gfx.offset.y + p.y*TILE_SIZE*gfx.zoom,
-		TILE_SIZE*gfx.zoom, TILE_SIZE*gfx.zoom
+		gfx.offset.x + gfx.zoom * p.x * TILE_SIZE,
+		gfx.offset.y + gfx.zoom * p.y * TILE_SIZE,
+		gfx.zoom * TILE_SIZE, gfx.zoom * TILE_SIZE
 	};
 	SDL_RenderFillRect(gfx.renderer, &dst);
 }
@@ -112,6 +114,17 @@ void gfxRender() {
 			map.size.x/gfx.minimapZoom, map.size.y/gfx.minimapZoom
 		};
 		SDL_RenderCopy(gfx.renderer, gfx.minimap, NULL, &dst);
+	}
+	
+	// Render font
+	{
+		/*
+		SDL_Surface *fontSurface = TTF_RenderUTF8_Shaded(gfx.mainFont, "Hello world", (SDL_Color){0, 0, 0}, (SDL_Color){255, 255, 255});
+		SDL_Texture *fontTexture = SDL_CreateTextureFromSurface(gfx.renderer, fontSurface);
+		SDL_RenderCopy(gfx.renderer, fontTexture, NULL, NULL);
+		SDL_DestroyTexture(fontTexture);
+		SDL_FreeSurface(fontSurface);
+		*/
 	}
 	
 	SDL_RenderPresent(gfx.renderer);

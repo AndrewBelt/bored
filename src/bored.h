@@ -12,7 +12,7 @@
 #include "containers.h"
 
 
-// Maths
+// Math
 
 #define PI 3.141592653589793
 
@@ -29,6 +29,39 @@ inline int eucDiv(int a, int b) {
 typedef struct {
 	int32_t x, y;
 } Vector;
+
+
+// engine.c
+
+extern struct Engine {
+	SDL_Window *window;
+	bool running;
+	int frame;
+} engine;
+
+void engineInit();
+void engineDestroy();
+void engineRun();
+
+
+// gfx.c
+
+#define TILE_SIZE 16
+
+typedef struct {
+	uint8_t r, g, b, a;
+} Pixel;
+
+extern struct Gfx {
+	SDL_Renderer *renderer;
+	TTF_Font *mainFont;
+	SDL_Texture *spritesheet;
+} gfx;
+
+void gfxInit();
+void gfxDestroy();
+void gfxRender();
+
 
 // tile.c
 
@@ -47,6 +80,7 @@ extern struct TileType {
 	} taskType;
 } tileTypes[256];
 
+
 // map.c
 
 typedef struct {
@@ -60,35 +94,16 @@ extern struct Map {
 	Tile *tiles;
 	List minions;
 	Vector selStart, selEnd;
+	Vector offset;
+	int zoom;
 } map;
 
 void mapInit();
 void mapDestroy();
 void mapSeed(uint32_t seed);
 Tile *mapGetTile(Vector pos);
-inline Vector mapSelMin() {
-	return (Vector){min(map.selStart.x, map.selEnd.x), min(map.selStart.y, map.selEnd.y)};
-}
-inline Vector mapSelMax() {
-	return (Vector){max(map.selStart.x, map.selEnd.x), max(map.selStart.y, map.selEnd.y)};
-}
-// Does nothing if the tile cannot be assigned a task
-void mapSelect();
-void mapDeselect();
-
-
-// engine.c
-
-extern struct Engine {
-	SDL_Window *window;
-	bool running;
-	int frame;
-} engine;
-
-void engineCheckEvent(SDL_Event *event);
-void engineRun();
-void engineInit();
-void engineDestroy();
+void mapRender();
+bool mapHandleEvent(SDL_Event *event);
 
 
 // phys.c
@@ -96,27 +111,15 @@ void engineDestroy();
 void physStep();
 
 
-// gfx.c
-// Draws the map and other stuff
+// gui.c
 
-#define TILE_SIZE 16
-
-typedef struct {
-	uint8_t r, g, b, a;
-} Pixel;
-
-extern struct Gfx {
-	TTF_Font *mainFont;
-	SDL_Renderer *renderer;
-	SDL_Texture *spritesheet;
+extern struct Gui {
 	SDL_Texture *minimap;
-	Vector offset;
-	int zoom;
 	// Actually the inverse zoom
 	int minimapZoom;
-} gfx;
+} gui;
 
-void gfxInit();
-void gfxDestroy();
-void gfxRender();
-void gfxMinimapRefresh();
+void guiInit();
+void guiDestroy();
+void guiRender();
+bool guiHandleEvent(SDL_Event *event);

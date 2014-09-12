@@ -2,11 +2,14 @@
 
 struct Map map;
 
+
 void mapInit() {
 	map.size = (Vector){256, 256};
 	map.tiles = calloc(map.size.x * map.size.y, sizeof(Tile));
-	
 	listInit(&map.minions);
+	
+	map.offset = (Vector){0, 0};
+	map.zoom = 2;
 }
 
 void mapDestroy() {
@@ -140,6 +143,74 @@ Tile *mapGetTile(Vector p) {
 	}
 }
 
+inline Vector mapSelMin() {
+	return (Vector){min(map.selStart.x, map.selEnd.x), min(map.selStart.y, map.selEnd.y)};
+}
+
+inline Vector mapSelMax() {
+	return (Vector){max(map.selStart.x, map.selEnd.x), max(map.selStart.y, map.selEnd.y)};
+}
+
+void mapDrawSprite(uint8_t type, Vector p) {
+	Vector sprite = {type % 16, type / 16};
+	SDL_Rect src = {
+		sprite.x * TILE_SIZE,
+		sprite.y * TILE_SIZE,
+		TILE_SIZE, TILE_SIZE
+	};
+	SDL_Rect dst = {
+		map.offset.x + map.zoom * p.x * TILE_SIZE,
+		map.offset.y + map.zoom * p.y * TILE_SIZE,
+		map.zoom * TILE_SIZE, map.zoom * TILE_SIZE
+	};
+	
+	SDL_RenderCopy(gfx.renderer, gfx.spritesheet, &src, &dst);
+}
+
+void mapDrawRect(Vector p) {
+	SDL_Rect dst = {
+		map.offset.x + map.zoom * p.x * TILE_SIZE,
+		map.offset.y + map.zoom * p.y * TILE_SIZE,
+		map.zoom * TILE_SIZE, map.zoom * TILE_SIZE
+	};
+	SDL_RenderFillRect(gfx.renderer, &dst);
+}
+
+void mapRender() {
+	// Render tiles
+	Vector p;
+	for (p.y = 0; p.y < map.size.y; p.y++) {
+		for (p.x = 0; p.x < map.size.x; p.x++) {
+			Tile *tile = mapGetTile(p);
+			mapDrawSprite(tile->type, p);
+			if (tile->task) {
+				// Render task
+				SDL_SetRenderDrawColor(gfx.renderer, 0, 255, 0, 128);
+				mapDrawRect(p);
+			}
+		}
+	}
+	
+	// Render selection
+	{
+		SDL_SetRenderDrawColor(gfx.renderer, 255, 0, 0, 128);
+		Vector selMin = mapSelMin();
+		Vector selMax = mapSelMax();
+		Vector sel;
+		for (sel.y = selMin.y; sel.y <= selMax.y; sel.y++) {
+			for (sel.x = selMin.x; sel.x <= selMax.x; sel.x++) {
+				mapDrawRect(sel);
+			}
+		}
+	}
+	
+	// Render minions
+	for (ListNode *i = map.minions.first; i; i = i->next) {
+		Minion *minion = i->el;
+		mapDrawSprite(0xf0, minion->pos);
+	}
+}
+
 void mapSelect() {
 	Vector selMin = mapSelMin();
 	Vector selMax = mapSelMax();
@@ -168,4 +239,42 @@ void mapDeselect() {
 			}
 		}
 	}
+}
+
+bool mapHandleEvent(SDL_Event *event) {
+	switch (event->type) {
+	case SDL_MOUSEMOTION:
+		if (event->motion.state & SDL_BUTTON_RMASK) {
+			map.offset.x += event->motion.xrel;
+			map.offset.y += event->motion.yrel;
+		}
+		map.selEnd = (Vector){
+			eucDiv(event->motion.x - map.offset.x, TILE_SIZE*map.zoom),
+			eucDiv(event->motion.y - map.offset.y, TILE_SIZE*map.zoom),
+		};
+		if (!(event->motion.state & SDL_BUTTON_LMASK)) {
+			map.selStart = map.selEnd;
+		}
+		break;
+	
+	case SDL_MOUSEBUTTONDOWN:
+		break;
+	
+	case SDL_MOUSEBUTTONUP:
+		if (event->button.button == SDL_BUTTON_LEFT) {
+			// Holding in CTRL deselects the block
+			SDL_Keymod mod = SDL_GetModState();
+			if (mod & KMOD_SHIFT) {
+				mapDeselect();
+			}
+			else {
+				mapSelect();
+			}
+			
+			map.selStart = map.selEnd;
+		}
+		break;
+	}
+	
+	return true;
 }

@@ -14,8 +14,8 @@ void engineRun() {
 			if (event.type == SDL_QUIT) {
 				engine.running = false;
 			}
-			else if (guiHandleEvent(&event));
-			else if (mapHandleEvent(&event));
+			else if (guiHandleEvent(&event)) {}
+			else if (mapHandleEvent(&event)) {}
 		}
 		
 		if (engine.frame % 8 == 0) {

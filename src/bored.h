@@ -46,8 +46,6 @@ void engineRun();
 
 // gfx.c
 
-#define TILE_SIZE 16
-
 typedef struct {
 	uint8_t r, g, b, a;
 } Pixel;
@@ -113,10 +111,10 @@ void physStep();
 
 // gui.c
 
+#define SIDEBAR_WIDTH 200
+
 extern struct Gui {
 	SDL_Texture *minimap;
-	// Actually the inverse zoom
-	int minimapZoom;
 } gui;
 
 void guiInit();

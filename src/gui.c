@@ -17,7 +17,6 @@ void guiInit() {
 	// Why is the byte order of the pixel format reversed??
 	gui.minimap = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, map.size.x, map.size.y);
 	assert(gui.minimap);
-	gui.minimapZoom = 2;
 }
 
 void guiDestroy() {
@@ -47,17 +46,28 @@ void guiMinimapRefresh() {
 }
 
 void guiRender() {
+	// Sidebar
+	{
+		SDL_SetRenderDrawColor(gfx.renderer, 64, 64, 64, 64);
+		SDL_Rect dst = {
+			0, 0, SIDEBAR_WIDTH, 1000
+		};
+		SDL_RenderFillRect(gfx.renderer, &dst);
+	}
+	
 	// Render minimap
 	{
+		// Refresh if needed
 		if (engine.frame % 64 == 0) {
 			guiMinimapRefresh();
 		}
 		
-		SDL_SetTextureBlendMode(gui.minimap, SDL_BLENDMODE_BLEND);
-		SDL_SetTextureAlphaMod(gui.minimap, 255 * 0.9);
+		// SDL_SetTextureBlendMode(gui.minimap, SDL_BLENDMODE_BLEND);
+		// SDL_SetTextureAlphaMod(gui.minimap, 255 * 0.9);
 		SDL_Rect dst = {
-			TILE_SIZE, TILE_SIZE,
-			map.size.x/gui.minimapZoom, map.size.y/gui.minimapZoom
+			0, 0,
+			SIDEBAR_WIDTH,
+			SIDEBAR_WIDTH * map.size.x / map.size.y
 		};
 		SDL_RenderCopy(gfx.renderer, gui.minimap, NULL, &dst);
 	}

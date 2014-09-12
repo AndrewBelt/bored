@@ -2,13 +2,15 @@
 
 struct Map map;
 
+#define TILE_SIZE 16
+
 
 void mapInit() {
 	map.size = (Vector){256, 256};
 	map.tiles = calloc(map.size.x * map.size.y, sizeof(Tile));
 	listInit(&map.minions);
 	
-	map.offset = (Vector){0, 0};
+	map.offset = (Vector){SIDEBAR_WIDTH, 0};
 	map.zoom = 2;
 }
 

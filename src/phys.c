@@ -1,9 +1,11 @@
 #include "bored.h"
 
+// Conversion macros between a Vector and the index 
 #define VECT2INDEX(v) (v.x + map.size.x * v.y)
 #define INDEX2VECT(i) (Vector){i % map.size.x, i / map.size.x}
 
 
+// Advances the progress of a task
 void taskStep(Vector p) {
 	Tile *tile = mapGetTile(p);
 	assert(tile->task > 0);
@@ -17,11 +19,25 @@ void taskStep(Vector p) {
 	}
 }
 
+
+// Starting with the minion, use Dijkstra's algorithm to
+// search for a tile with a task.
 // FIXME
 // Only works with one minion
+// This can be solved if minions have a `task` field which
+// identifies the task they are dedicated to.
+// If a minion has a task, he should only search for that task.
+// If he fails to find it, he should be unassigned the task.
+// If the minion does not have a task, he should search
+// for only tasks which do not have a minion assigned to that
+// task.
+// (This will require a linear search in the `map.minion` list.)
 void minionWalk(Minion *minion) {
 	// TODO
 	// Allocate these statically or something.
+	// This seems like a lot to allocate for a single minion step,
+	// but it has constant read/write access.
+	// Is there a better way to do it?
 	int *prev = calloc(map.size.x * map.size.y, sizeof(int));
 	float *dist = calloc(map.size.x * map.size.y, sizeof(float));
 	bool *checked = calloc(map.size.x * map.size.y, sizeof(bool));
@@ -62,8 +78,22 @@ void minionWalk(Minion *minion) {
 					continue;
 				}
 				
-				// TODO
-				// Actual collisions
+				/*
+				FIXME
+				The following move is illegal, but this
+				algorithm allows it.
+				
+				. # .
+				# o .
+				. . .
+				
+				o # .
+				# . .
+				. . .
+				
+				Basically we can't go through corners, so this case
+				should be explicitly handled.
+				*/
 				
 				int weight = 1;
 				if (vTile->task == 0) {
@@ -74,7 +104,7 @@ void minionWalk(Minion *minion) {
 				}
 				
 				// Reduce random diagonal movement by forcing L_2 distance
-				weight *= (abs(dx) + abs(dy) == 2) ? 181 : 128;
+				weight *= (abs(dx) + abs(dy) == 2) ? 141 : 100;
 				
 				int vIndex = VECT2INDEX(v);
 				int d = dist[uIndex] + weight;
@@ -92,8 +122,10 @@ void minionWalk(Minion *minion) {
 	free(checked);
 	free(dist);
 	
+	// Dijkstra's algorithm finished, so let's see what we can do
+	// with the results.
 	if (endIndex >= 0) {
-		// Rewind path back to start
+		// Rewind path back to second node in the path
 		int wIndex = uIndex;
 		while (uIndex != startIndex) {
 			wIndex = uIndex;
@@ -114,7 +146,11 @@ void minionWalk(Minion *minion) {
 }
 
 void physStep() {
+	// Step each minion
 	for (ListNode *i = map.minions.first; i; i = i->next) {
 		minionWalk(i->el);
 	}
+	
+	// TODO
+	// Add forest fires!
 }

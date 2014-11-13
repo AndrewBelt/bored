@@ -64,8 +64,19 @@ void gfxRender();
 // tile.c
 
 typedef struct {
+	// Corresponds to the sprite index in the tileset
 	uint8_t type;
+	// Currently stores the number of timesteps needed
+	// to complete this task.
+	// If 0, there is no task at this tile.
+	// TODO
+	// Change this value to distinguish the tile type
+	// such as "cut down tree" vs "dig" since the same
+	// tile type can have potentially many possible tasks.
 	uint8_t task;
+	// Bit field of boolean properties
+	// 1<<0: fire
+	uint16_t flags;
 } Tile;
 
 extern struct TileType {
